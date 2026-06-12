@@ -6,6 +6,7 @@ import {
   type CardFilterParams,
   type SortOption,
 } from "@/lib/catalog/filter-sort";
+import { parseCardSearchQuery } from "@/lib/catalog/parse-search-query";
 import { POCKET_SET_IDS } from "@/lib/catalog/pocket";
 import { db } from "@/lib/db";
 import { cards, collectionEntries, pinnedSets, sets } from "@/lib/db/schema";
@@ -49,6 +50,26 @@ const cardBriefSelect = {
   },
 };
 
+async function resolveFilterParams(
+  filterParams: CardFilterParams,
+): Promise<CardFilterParams> {
+  if (!filterParams.q || filterParams.set) {
+    return filterParams;
+  }
+
+  const setRows = await db
+    .select({ id: sets.id, name: sets.name })
+    .from(sets)
+    .where(physicalSetsFilter());
+
+  const parsed = parseCardSearchQuery(filterParams.q, setRows);
+  return {
+    ...filterParams,
+    q: parsed.cardQuery || filterParams.q,
+    set: parsed.setId ?? filterParams.set,
+  };
+}
+
 export async function searchCards({
   sort = "name_asc",
   page = 1,
@@ -58,7 +79,8 @@ export async function searchCards({
   const safeLimit = Math.min(Math.max(limit, 1), 100);
   const offset = (Math.max(page, 1) - 1) * safeLimit;
 
-  const filters = [physicalCardsFilter(), ...buildCardFilterSql(filterParams)];
+  const resolvedFilters = await resolveFilterParams(filterParams);
+  const filters = [physicalCardsFilter(), ...buildCardFilterSql(resolvedFilters)];
   const whereClause = and(...filters);
   const orderBy = buildCardOrderBy(sort);
 
@@ -71,7 +93,11 @@ export async function searchCards({
       .orderBy(...orderBy)
       .limit(safeLimit)
       .offset(offset),
-    db.select({ value: count() }).from(cards).where(whereClause),
+    db
+      .select({ value: count() })
+      .from(cards)
+      .innerJoin(sets, eq(cards.setId, sets.id))
+      .where(whereClause),
   ]);
 
   return {

@@ -209,6 +209,9 @@ export const deckCards = pgTable(
     cardName: text("card_name").notNull(),
     normalizedName: text("normalized_name").notNull(),
     quantity: integer("quantity").notNull().default(1),
+    representativeCardId: text("representative_card_id").references(() => cards.id, {
+      onDelete: "set null",
+    }),
   },
   (table) => [
     unique("deck_cards_deck_name").on(table.deckId, table.normalizedName),

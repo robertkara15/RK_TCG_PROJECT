@@ -8,7 +8,8 @@ const milestones = [
   { name: "M0", label: "Auth & scaffold", status: "complete" },
   { name: "M1", label: "Card catalog", status: "complete" },
   { name: "M2", label: "Collection", status: "complete" },
-  { name: "M3", label: "Decks", status: "upcoming" },
+  { name: "M3", label: "Decks", status: "complete" },
+  { name: "M4", label: "Albums", status: "upcoming" },
 ];
 
 export default function HomePage() {
@@ -20,7 +21,7 @@ export default function HomePage() {
         </h1>
         <p className="max-w-2xl text-zinc-400">
           RK TCG is your personal Pokémon TCG Standard organizer. Sync the
-          catalog in Settings, track your collection, then build decks in M3.
+          catalog in Settings, track your collection, and build Standard decks.
         </p>
       </section>
 
