@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { CardImage } from "@/components/card-image";
+import { DeckCardGrid } from "@/components/decks/deck-card-grid";
 import { DeckImportModal } from "@/components/decks/deck-import-modal";
 import { DeckStatsPanel } from "@/components/decks/deck-stats-panel";
 import type { DeckStats, ValidationWarning } from "@/lib/decks/types";
@@ -13,12 +14,15 @@ type DeckCard = {
   cardName: string;
   normalizedName: string;
   quantity: number;
+  category: string;
+  trainerType: string | null;
   representativeCard: {
     id: string;
     name: string;
     imageUrl: string | null;
   } | null;
   nameIsStandardLegal: boolean;
+  isAceSpec: boolean;
 };
 
 type DeckDetail = {
@@ -367,74 +371,14 @@ export function DeckEditor({ deckId }: { deckId: string }) {
               Search to add your first card.
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-              {deck.cards.map((card) => (
-                <div
-                  key={card.normalizedName}
-                  className={`rounded-xl border p-3 ${
-                    card.nameIsStandardLegal
-                      ? "border-zinc-800 bg-zinc-900/40"
-                      : "border-red-500/50 bg-red-950/20"
-                  }`}
-                >
-                  <span className="mb-2 inline-block rounded-full bg-violet-600 px-2 py-0.5 text-xs font-semibold text-white">
-                    ×{card.quantity}
-                  </span>
-                  {card.representativeCard ? (
-                    <Link href={`/cards/${card.representativeCard.id}`}>
-                      <CardImage
-                        imageUrl={card.representativeCard.imageUrl}
-                        name={card.cardName}
-                        className="mb-3 aspect-[5/7] w-full bg-zinc-950"
-                      />
-                    </Link>
-                  ) : (
-                    <div className="mb-3 flex aspect-[5/7] items-center justify-center rounded-lg bg-zinc-800 px-2 text-center text-xs text-zinc-400">
-                      {card.cardName}
-                    </div>
-                  )}
-                  <p className="line-clamp-2 text-sm font-medium text-white">
-                    {card.cardName}
-                  </p>
-                  <div className="mt-3 flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        void setCardQuantity(
-                          card.normalizedName,
-                          card.cardName,
-                          Math.max(0, card.quantity - 1),
-                        )
-                      }
-                      className="rounded border border-zinc-700 px-2 py-1 text-zinc-300"
-                    >
-                      −
-                    </button>
-                    <span className="text-sm text-white">{card.quantity}</span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        void setCardQuantity(
-                          card.normalizedName,
-                          card.cardName,
-                          card.quantity + 1,
-                        )
-                      }
-                      className="rounded border border-zinc-700 px-2 py-1 text-zinc-300"
-                    >
-                      +
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void removeCard(card.normalizedName)}
-                      className="ml-auto text-xs text-red-400 hover:text-red-300"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <DeckCardGrid
+              cards={deck.cards}
+              stats={deck.stats}
+              onSetQuantity={(normalizedName, cardName, quantity) =>
+                void setCardQuantity(normalizedName, cardName, quantity)
+              }
+              onRemove={(normalizedName) => void removeCard(normalizedName)}
+            />
           )}
       </div>
 

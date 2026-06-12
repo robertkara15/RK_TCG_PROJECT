@@ -36,7 +36,7 @@ export function mapDetailCard(detail: TcgdexCardDetail) {
     regulationMark: detail.regulationMark ?? null,
     legalStandardPrint: null,
     isAceSpec: detectAceSpec(detail.rarity, effect, description),
-    isBasicEnergy: detectBasicEnergy(category, detail.energyType),
+    isBasicEnergy: detectBasicEnergy(category, detail.energyType, detail.name),
     hp: detail.hp ?? null,
     types: detail.types ?? null,
     stage: detail.stage ?? null,

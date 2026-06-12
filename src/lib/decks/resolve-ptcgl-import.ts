@@ -76,16 +76,11 @@ async function findCardBySetAndNumber(
     if (exact) {
       return exact;
     }
+    // PTCGL card numbers often differ from TCGdex — do not pick a different card.
+    return null;
   }
 
-  return (
-    [...rows].sort((a, b) => {
-      if (a.nameIsStandardLegal !== b.nameIsStandardLegal) {
-        return a.nameIsStandardLegal ? -1 : 1;
-      }
-      return a.name.localeCompare(b.name);
-    })[0] ?? null
-  );
+  return rows[0] ?? null;
 }
 
 async function findCardByName(cardName: string) {
@@ -123,6 +118,39 @@ async function findCardByName(cardName: string) {
   );
 }
 
+async function findCardByNameInSet(setId: string, cardName: string) {
+  const normalizedName = normalizeCardName(cardName);
+  const rows = await db
+    .select({
+      id: cards.id,
+      name: cards.name,
+      normalizedName: cards.normalizedName,
+      nameIsStandardLegal: cards.nameIsStandardLegal,
+      localId: cards.localId,
+    })
+    .from(cards)
+    .where(
+      and(
+        eq(cards.setId, setId),
+        eq(cards.normalizedName, normalizedName),
+        physicalCardsFilter(),
+      ),
+    );
+
+  if (rows.length === 0) {
+    return null;
+  }
+
+  return (
+    [...rows].sort((a, b) => {
+      if (a.nameIsStandardLegal !== b.nameIsStandardLegal) {
+        return a.nameIsStandardLegal ? -1 : 1;
+      }
+      return a.localId.localeCompare(b.localId, undefined, { numeric: true });
+    })[0] ?? null
+  );
+}
+
 async function resolveLine(line: ParsedPtcglLine) {
   if (line.setCode && line.cardNumber) {
     const setId = resolvePtcglSetId(line.setCode);
@@ -134,6 +162,11 @@ async function resolveLine(line: ParsedPtcglLine) {
       );
       if (byPrint) {
         return byPrint;
+      }
+
+      const byNameInSet = await findCardByNameInSet(setId, line.cardName);
+      if (byNameInSet) {
+        return byNameInSet;
       }
     }
   }

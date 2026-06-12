@@ -60,9 +60,26 @@ async function recomputeDerivedFields() {
   `);
 
   await db.execute(sql`
+    UPDATE cards
+    SET is_basic_energy = (
+      category = 'Energy' AND (
+        COALESCE(energy_type, '') = 'Basic'
+        OR normalized_name ~* '^(basic )?(grass|fire|water|lightning|psychic|fighting|darkness|dark|metal|fairy|colorless) energy$'
+      )
+    ),
+    is_ace_spec = (
+      COALESCE(rarity, '') ILIKE '%ACE SPEC%'
+      OR COALESCE(effect, '') ILIKE '%ACE SPEC%'
+      OR COALESCE(description, '') ILIKE '%ACE SPEC%'
+    )
+    WHERE set_id NOT IN (${pocketSets})
+  `);
+
+  await db.execute(sql`
     UPDATE cards AS c
     SET name_is_standard_legal = CASE
       WHEN c.category = 'Pokemon' THEN c.legal_standard_print
+      WHEN c.is_basic_energy THEN true
       WHEN c.category IN ('Trainer', 'Energy') THEN EXISTS (
         SELECT 1
         FROM cards AS c2
@@ -74,20 +91,6 @@ async function recomputeDerivedFields() {
       ELSE c.legal_standard_print
     END
     WHERE c.set_id NOT IN (${pocketSets})
-  `);
-
-  await db.execute(sql`
-    UPDATE cards
-    SET
-      is_basic_energy = (
-        category = 'Energy' AND COALESCE(energy_type, '') = 'Basic'
-      ),
-      is_ace_spec = (
-        COALESCE(rarity, '') ILIKE '%ACE SPEC%'
-        OR COALESCE(effect, '') ILIKE '%ACE SPEC%'
-        OR COALESCE(description, '') ILIKE '%ACE SPEC%'
-      )
-    WHERE set_id NOT IN (${pocketSets})
   `);
 
   const [totalRow] = await db

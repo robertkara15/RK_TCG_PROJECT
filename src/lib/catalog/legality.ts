@@ -108,9 +108,85 @@ export function detectAceSpec(
   return rulesText.includes("ACE SPEC");
 }
 
+const BASIC_ENERGY_TYPES =
+  "grass|fire|water|lightning|psychic|fighting|darkness|dark|metal|fairy|colorless";
+
+export const BASIC_ENERGY_NAME_PATTERN = new RegExp(
+  `^(?:basic )?(?:${BASIC_ENERGY_TYPES}) energy$`,
+  "i",
+);
+
+export function isBasicEnergyCardName(name: string): boolean {
+  return BASIC_ENERGY_NAME_PATTERN.test(name.trim());
+}
+
+/** Map any energy card name to its basic type name, e.g. "Telepathic Psychic Energy" → "Psychic Energy". */
+export function getBasicEnergyNameForDisplay(name: string): string | null {
+  const trimmed = name.trim();
+  if (isBasicEnergyCardName(trimmed)) {
+    const match = trimmed.match(
+      new RegExp(`^(?:basic\\s+)?(${BASIC_ENERGY_TYPES}) energy$`, "i"),
+    );
+    if (!match) {
+      return null;
+    }
+    const raw = match[1].toLowerCase();
+    const label =
+      raw === "dark"
+        ? "Darkness"
+        : raw.charAt(0).toUpperCase() + raw.slice(1);
+    return `${label} Energy`;
+  }
+
+  const lower = trimmed.toLowerCase();
+  if (!lower.endsWith(" energy")) {
+    return null;
+  }
+
+  const orderedTypes = [
+    "darkness",
+    "colorless",
+    "lightning",
+    "fighting",
+    "psychic",
+    "grass",
+    "fire",
+    "water",
+    "metal",
+    "fairy",
+    "dark",
+  ];
+
+  for (const type of orderedTypes) {
+    if (!lower.includes(type)) {
+      continue;
+    }
+    const label =
+      type === "dark"
+        ? "Darkness"
+        : type.charAt(0).toUpperCase() + type.slice(1);
+    return `${label} Energy`;
+  }
+
+  return null;
+}
+
 export function detectBasicEnergy(
   category: string,
   energyType: string | null | undefined,
+  name?: string | null,
 ): boolean {
-  return category === "Energy" && energyType === "Basic";
+  if (category !== "Energy") {
+    return false;
+  }
+
+  if (energyType === "Basic") {
+    return true;
+  }
+
+  if (name && isBasicEnergyCardName(name)) {
+    return true;
+  }
+
+  return false;
 }

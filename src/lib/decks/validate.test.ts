@@ -94,6 +94,22 @@ describe("validateDeck", () => {
     ).toBe(false);
   });
 
+  it("does not warn on Psychic Energy even when catalog flags are stale", () => {
+    const psychicCatalog = buildCatalogMap([
+      meta({
+        name: "Psychic Energy",
+        category: "Energy",
+        isBasicEnergy: false,
+        nameIsStandardLegal: false,
+      }),
+    ]);
+
+    const result = validateDeck([entry("Psychic Energy", 3)], psychicCatalog);
+    expect(
+      result.warnings.some((warning) => warning.ruleId === "STANDARD_LEGAL"),
+    ).toBe(false);
+  });
+
   it("warns when deck is not 60 cards", () => {
     const result = validateDeck([entry("Ultra Ball", 4)], catalog);
     expect(result.warnings.some((warning) => warning.ruleId === "DECK_SIZE")).toBe(

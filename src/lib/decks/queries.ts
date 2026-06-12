@@ -5,6 +5,10 @@ import { POCKET_SET_IDS } from "@/lib/catalog/pocket";
 import { parsePtcglDeckText } from "@/lib/decks/ptcgl-parser";
 import { resolvePtcglImportLines } from "@/lib/decks/resolve-ptcgl-import";
 import {
+  collectEnergyFallbackCatalogNames,
+  resolveCardDisplayImage,
+} from "@/lib/decks/resolve-card-image";
+import {
   buildCatalogMap,
   pickRepresentativeCard,
   validateDeck,
@@ -189,6 +193,31 @@ function resolveRepresentativeCard(
   return pickRepresentativeCard(catalogByName, entry.normalizedName);
 }
 
+async function loadCatalogForDeck(entries: DeckCardEntry[]) {
+  const representativeIds = entries
+    .map((row) => row.representativeCardId)
+    .filter((id): id is string => Boolean(id));
+
+  let catalog = await loadCatalogMetaForNames(
+    entries.map((row) => row.normalizedName),
+    representativeIds,
+  );
+
+  const catalogByName = buildCatalogMap(catalog);
+  const fallbackNames = collectEnergyFallbackCatalogNames(entries, catalogByName);
+
+  if (fallbackNames.length > 0) {
+    const extraCatalog = await loadCatalogMetaForNames(fallbackNames);
+    const seen = new Set(catalog.map((card) => card.id));
+    catalog = [
+      ...catalog,
+      ...extraCatalog.filter((card) => !seen.has(card.id)),
+    ];
+  }
+
+  return catalog;
+}
+
 function buildDeckResponse(
   deck: typeof decks.$inferSelect,
   tagRows: { id: string; name: string; color: string | null }[],
@@ -219,15 +248,20 @@ function buildDeckResponse(
         cardName: entry.cardName,
         normalizedName: entry.normalizedName,
         quantity: entry.quantity,
+        category: representative?.category ?? "Unknown",
+        trainerType: representative?.trainerType ?? null,
         representativeCard: representative
           ? {
               id: representative.id,
               name: representative.name,
-              imageUrl: representative.imageUrl,
+              imageUrl: resolveCardDisplayImage(representative, catalogByName),
             }
           : null,
         nameIsStandardLegal: representative
           ? catalogByName.get(entry.normalizedName)?.some((c) => c.nameIsStandardLegal) ?? false
+          : false,
+        isAceSpec: representative
+          ? catalogByName.get(entry.normalizedName)?.some((c) => c.isAceSpec) ?? false
           : false,
       };
     }),
@@ -337,13 +371,7 @@ export async function getDeckDetail(deckId: string, userId: string) {
     .where(eq(deckCards.deckId, deckId))
     .orderBy(asc(deckCards.cardName));
 
-  const representativeIds = entryRows
-    .map((row) => row.representativeCardId)
-    .filter((id): id is string => Boolean(id));
-  const catalog = await loadCatalogMetaForNames(
-    entryRows.map((row) => row.normalizedName),
-    representativeIds,
-  );
+  const catalog = await loadCatalogForDeck(entryRows);
   const tagRows = await getDeckTagRows(deckId);
 
   return buildDeckResponse(deck, tagRows, entryRows, catalog);

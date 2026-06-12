@@ -6,6 +6,7 @@ import {
   type ValidationResult,
   type ValidationWarning,
 } from "@/lib/decks/types";
+import { isBasicEnergyCardName } from "@/lib/catalog/legality";
 
 function getCatalogForName(
   catalogByName: Map<string, CatalogCardMeta[]>,
@@ -28,6 +29,11 @@ function pickMeta(
       if (a.nameIsStandardLegal !== b.nameIsStandardLegal) {
         return a.nameIsStandardLegal ? -1 : 1;
       }
+      const aHasImage = Boolean(a.imageUrl);
+      const bHasImage = Boolean(b.imageUrl);
+      if (aHasImage !== bHasImage) {
+        return aHasImage ? -1 : 1;
+      }
       return (
         (b.setReleaseDate ?? "").localeCompare(a.setReleaseDate ?? "") ||
         a.localId.localeCompare(b.localId, undefined, { numeric: true })
@@ -40,6 +46,10 @@ function isBasicEnergyName(
   catalogByName: Map<string, CatalogCardMeta[]>,
   normalizedName: string,
 ): boolean {
+  if (isBasicEnergyCardName(normalizedName)) {
+    return true;
+  }
+
   return getCatalogForName(catalogByName, normalizedName).some(
     (card) => card.isBasicEnergy,
   );
@@ -213,7 +223,10 @@ export function validateDeck(
       continue;
     }
 
-    if (!isNameStandardLegal(catalogByName, normalizedName)) {
+    if (
+      !isBasicEnergyName(catalogByName, normalizedName) &&
+      !isNameStandardLegal(catalogByName, normalizedName)
+    ) {
       warnings.push({
         ruleId: "STANDARD_LEGAL",
         severity: "warning",
