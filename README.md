@@ -4,7 +4,7 @@ Personal Pokémon TCG **Standard** organizer — decklists, collection tracking,
 
 ## Status
 
-**Spec phase** — implementation not started yet. See [`spec/`](./spec/) for the full specification.
+**M1 in progress** — M0 auth scaffold is done; card catalog sync, browse, and detail views are implemented. See [`spec/10-milestones.md`](./spec/10-milestones.md) for the full build plan.
 
 ## Features (planned)
 
@@ -28,16 +28,15 @@ Start with [`spec/README.md`](./spec/README.md) for the spec index and [`spec/10
 
 ## Local setup
 
-_Not yet applicable — app scaffold coming in milestone M0._
-
-When ready:
-
 ```bash
 cp .env.example .env.local
 # Fill in DATABASE_URL, AUTH_SECRET, OWNER_EMAIL, OWNER_PASSWORD
 npm install
+npm run db:push   # or npm run db:migrate after generating migrations
 npm run dev
 ```
+
+On first server start, the owner account is bootstrapped from `OWNER_EMAIL` and `OWNER_PASSWORD` when the `users` table is empty.
 
 ## License
 
