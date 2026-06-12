@@ -1,0 +1,11 @@
+{
+  "folders": [
+    {
+      "name": "RK_TCG_PROJECT",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "git.openRepositoryInParentFolders": "never"
+  }
+}
