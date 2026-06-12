@@ -7,6 +7,7 @@ import {
   type SortOption,
 } from "@/lib/catalog/filter-sort";
 import { parseCardSearchQuery } from "@/lib/catalog/parse-search-query";
+import { isSamePokemonPrint } from "@/lib/catalog/pokemon-print-match";
 import { POCKET_SET_IDS } from "@/lib/catalog/pocket";
 import { db } from "@/lib/db";
 import { cards, collectionEntries, pinnedSets, sets } from "@/lib/db/schema";
@@ -240,7 +241,29 @@ export async function getCollectionQuantity(userId: string, cardId: string) {
 }
 
 export async function getOtherPrints(cardId: string, normalizedName: string) {
-  return db
+  const [source] = await db
+    .select({
+      id: cards.id,
+      category: cards.category,
+      hp: cards.hp,
+      stage: cards.stage,
+      evolveFrom: cards.evolveFrom,
+      types: cards.types,
+      attacks: cards.attacks,
+      abilities: cards.abilities,
+      retreat: cards.retreat,
+      weaknesses: cards.weaknesses,
+      resistances: cards.resistances,
+    })
+    .from(cards)
+    .where(eq(cards.id, cardId))
+    .limit(1);
+
+  if (!source) {
+    return [];
+  }
+
+  const candidates = await db
     .select({
       id: cards.id,
       name: cards.name,
@@ -251,6 +274,16 @@ export async function getOtherPrints(cardId: string, normalizedName: string) {
       releaseDate: sets.releaseDate,
       nameIsStandardLegal: cards.nameIsStandardLegal,
       legalStandardPrint: cards.legalStandardPrint,
+      category: cards.category,
+      hp: cards.hp,
+      stage: cards.stage,
+      evolveFrom: cards.evolveFrom,
+      types: cards.types,
+      attacks: cards.attacks,
+      abilities: cards.abilities,
+      retreat: cards.retreat,
+      weaknesses: cards.weaknesses,
+      resistances: cards.resistances,
     })
     .from(cards)
     .innerJoin(sets, eq(cards.setId, sets.id))
@@ -263,6 +296,37 @@ export async function getOtherPrints(cardId: string, normalizedName: string) {
       ),
     )
     .orderBy(sql`${sets.releaseDate} DESC NULLS LAST`, asc(cards.localId));
+
+  const matching =
+    source.category === "Pokemon"
+      ? candidates.filter((candidate) =>
+          isSamePokemonPrint(source, candidate),
+        )
+      : candidates;
+
+  return matching.map(
+    ({
+      id,
+      name,
+      imageUrl,
+      localId,
+      setId,
+      setName,
+      releaseDate,
+      nameIsStandardLegal,
+      legalStandardPrint,
+    }) => ({
+      id,
+      name,
+      imageUrl,
+      localId,
+      setId,
+      setName,
+      releaseDate,
+      nameIsStandardLegal,
+      legalStandardPrint,
+    }),
+  );
 }
 
 export async function listSets() {

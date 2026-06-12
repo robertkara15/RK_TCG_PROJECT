@@ -45,12 +45,12 @@ export default async function CardDetailPage({ params }: PageProps) {
       : 0;
 
   return (
-    <div className="space-y-8">
+    <div className="max-w-full space-y-8 overflow-x-hidden">
       <Link href="/cards" className="text-sm text-zinc-400 transition hover:text-white">
         ← Back to cards
       </Link>
 
-      <div className="grid gap-8 lg:grid-cols-[320px_1fr]">
+      <div className="grid min-w-0 gap-8 lg:grid-cols-[320px_minmax(0,1fr)]">
         <CardImage
           imageUrl={card.imageUrl}
           name={card.name}
@@ -59,7 +59,7 @@ export default async function CardDetailPage({ params }: PageProps) {
           className="mx-auto w-full max-w-sm bg-zinc-950"
         />
 
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           <div className="space-y-3">
             <h1 className="text-3xl font-semibold text-white">{card.name}</h1>
             <p className="text-zinc-400">
@@ -97,25 +97,29 @@ export default async function CardDetailPage({ params }: PageProps) {
           </section>
 
           {otherPrints.length > 0 ? (
-            <section className="space-y-3">
+            <section className="min-w-0 space-y-3">
               <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-500">
                 Other prints
               </h2>
-              <div className="flex gap-3 overflow-x-auto pb-2">
-                {otherPrints.map((print) => (
-                  <Link
-                    key={print.id}
-                    href={`/cards/${print.id}`}
-                    className="w-28 shrink-0 rounded-lg border border-zinc-800 p-2 transition hover:border-zinc-600"
-                  >
-                    <CardImage
-                      imageUrl={print.imageUrl}
-                      name={print.name}
-                      className="mb-2 aspect-[5/7] w-full bg-zinc-950"
-                    />
-                    <p className="line-clamp-2 text-xs text-zinc-400">{print.setName}</p>
-                  </Link>
-                ))}
+              <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950/40">
+                <div className="flex gap-3 overflow-x-auto overscroll-x-contain p-3 [-ms-overflow-style:none] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-track]:bg-transparent">
+                  {otherPrints.map((print) => (
+                    <Link
+                      key={print.id}
+                      href={`/cards/${print.id}`}
+                      className="w-28 shrink-0 rounded-lg border border-zinc-800 bg-zinc-900/40 p-2 transition hover:border-zinc-600"
+                    >
+                      <CardImage
+                        imageUrl={print.imageUrl}
+                        name={print.name}
+                        className="mb-2 aspect-[5/7] w-full bg-zinc-950"
+                      />
+                      <p className="line-clamp-2 text-xs text-zinc-400">
+                        {print.setName}
+                      </p>
+                    </Link>
+                  ))}
+                </div>
               </div>
             </section>
           ) : null}

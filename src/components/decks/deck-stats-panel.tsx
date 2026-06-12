@@ -47,14 +47,15 @@ function StatItem({
 }
 
 function TrainerBreakdown({ stats }: { stats: DeckStats }) {
-  const items: { key: keyof typeof TRAINER_SUBTYPE_THEMES; label: string; value: number }[] =
+  const items = (
     [
       { key: "supporter", label: "Supporter", value: stats.trainers.supporter },
       { key: "item", label: "Item", value: stats.trainers.item },
       { key: "stadium", label: "Stadium", value: stats.trainers.stadium },
       { key: "tool", label: "Tool", value: stats.trainers.tool },
       { key: "other", label: "Other", value: stats.trainers.other },
-    ].filter((entry) => entry.value > 0);
+    ] as const
+  ).filter((entry) => entry.value > 0);
 
   if (items.length === 0) {
     return null;
