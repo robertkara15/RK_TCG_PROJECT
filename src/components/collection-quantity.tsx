@@ -40,39 +40,52 @@ export function CollectionQuantity({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <span className="text-sm font-medium text-zinc-300">In collection</span>
-      <div className="flex items-center rounded-lg border border-zinc-700 bg-zinc-900">
-        <button
-          type="button"
-          onClick={decrement}
-          disabled={isSaving || quantity === 0}
-          className="px-3 py-2 text-zinc-300 transition hover:text-white disabled:opacity-40"
-          aria-label="Decrease quantity"
-        >
-          −
-        </button>
-        <span className="min-w-8 text-center text-sm font-semibold text-white">
-          {quantity}
-        </span>
-        <button
-          type="button"
-          onClick={increment}
-          disabled={isSaving}
-          className="px-3 py-2 text-zinc-300 transition hover:text-white disabled:opacity-40"
-          aria-label="Increase quantity"
-        >
-          +
-        </button>
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="text-sm font-medium text-zinc-300">In collection</span>
+        {quantity > 0 ? (
+          <div className="flex items-center rounded-lg border border-zinc-700 bg-zinc-900">
+            <button
+              type="button"
+              onClick={decrement}
+              disabled={isSaving}
+              className="px-3 py-2 text-zinc-300 transition hover:text-white disabled:opacity-40"
+              aria-label="Decrease quantity"
+            >
+              −
+            </button>
+            <span className="min-w-8 text-center text-sm font-semibold text-white">
+              {quantity}
+            </span>
+            <button
+              type="button"
+              onClick={increment}
+              disabled={isSaving}
+              className="px-3 py-2 text-zinc-300 transition hover:text-white disabled:opacity-40"
+              aria-label="Increase quantity"
+            >
+              +
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={increment}
+            disabled={isSaving}
+            className="rounded-lg bg-violet-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-violet-500 disabled:opacity-50"
+          >
+            Add to collection
+          </button>
+        )}
       </div>
-      {quantity === 0 ? (
+      {quantity > 0 ? (
         <button
           type="button"
-          onClick={increment}
+          onClick={() => void save(0)}
           disabled={isSaving}
-          className="rounded-lg bg-violet-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-violet-500 disabled:opacity-50"
+          className="text-sm text-red-400 transition hover:text-red-300 disabled:opacity-50"
         >
-          Add to collection
+          Remove from collection
         </button>
       ) : null}
     </div>

@@ -8,7 +8,7 @@ import {
 } from "@/lib/catalog/filter-sort";
 import { POCKET_SET_IDS } from "@/lib/catalog/pocket";
 import { db } from "@/lib/db";
-import { cards, collectionEntries, sets } from "@/lib/db/schema";
+import { cards, collectionEntries, pinnedSets, sets } from "@/lib/db/schema";
 
 const POCKET_SET_ID_LIST = [...POCKET_SET_IDS];
 
@@ -259,4 +259,238 @@ export async function getSetById(setId: string) {
     .limit(1);
 
   return row ?? null;
+}
+
+const LOCAL_ID_NUMERIC_SQL = sql`
+  CASE
+    WHEN ${cards.localId} ~ '^[0-9]+$' THEN ${cards.localId}::int
+    ELSE 999999
+  END
+`;
+
+export async function getCollectionSetCompletion(userId: string) {
+  const ownedBySet = db
+    .select({
+      setId: cards.setId,
+      ownedCount: sql<number>`COUNT(DISTINCT ${cards.localId})`.as("owned_count"),
+    })
+    .from(collectionEntries)
+    .innerJoin(cards, eq(collectionEntries.cardId, cards.id))
+    .where(
+      and(
+        eq(collectionEntries.userId, userId),
+        sql`${collectionEntries.quantity} > 0`,
+        physicalCardsFilter(),
+      ),
+    )
+    .groupBy(cards.setId)
+    .as("owned_by_set");
+
+  const rows = await db
+    .select({
+      set: {
+        id: sets.id,
+        name: sets.name,
+        officialCount: sets.officialCount,
+        releaseDate: sets.releaseDate,
+      },
+      ownedCount: sql<number>`COALESCE(${ownedBySet.ownedCount}, 0)`.mapWith(Number),
+      pinnedAt: pinnedSets.pinnedAt,
+    })
+    .from(sets)
+    .leftJoin(ownedBySet, eq(ownedBySet.setId, sets.id))
+    .leftJoin(
+      pinnedSets,
+      and(eq(pinnedSets.setId, sets.id), eq(pinnedSets.userId, userId)),
+    )
+    .where(physicalSetsFilter())
+    .orderBy(sql`${sets.releaseDate} DESC NULLS LAST`, asc(sets.name));
+
+  return rows.map((row) => {
+    const officialCount = row.set.officialCount;
+    const ownedCount = row.ownedCount;
+    const completionPercent =
+      officialCount > 0
+        ? Math.min(100, (ownedCount / officialCount) * 100)
+        : 0;
+
+    return {
+      set: row.set,
+      ownedCount,
+      completionPercent: Math.round(completionPercent * 100) / 100,
+      pinned: row.pinnedAt != null,
+      pinnedAt: row.pinnedAt?.toISOString() ?? null,
+    };
+  });
+}
+
+export async function pinSetForUser(userId: string, setId: string) {
+  const set = await getSetById(setId);
+  if (!set) {
+    return null;
+  }
+
+  const [row] = await db
+    .insert(pinnedSets)
+    .values({ userId, setId })
+    .onConflictDoUpdate({
+      target: [pinnedSets.userId, pinnedSets.setId],
+      set: { pinnedAt: new Date() },
+    })
+    .returning();
+
+  return row;
+}
+
+export async function unpinSetForUser(userId: string, setId: string) {
+  await db
+    .delete(pinnedSets)
+    .where(and(eq(pinnedSets.userId, userId), eq(pinnedSets.setId, setId)));
+}
+
+export async function getSetCompletionForUser(userId: string, setId: string) {
+  const [ownedRow] = await db
+    .select({
+      ownedCount: sql<number>`COUNT(DISTINCT ${cards.localId})`.mapWith(Number),
+      ownedPrintCount: count(),
+    })
+    .from(collectionEntries)
+    .innerJoin(cards, eq(collectionEntries.cardId, cards.id))
+    .where(
+      and(
+        eq(collectionEntries.userId, userId),
+        eq(cards.setId, setId),
+        sql`${collectionEntries.quantity} > 0`,
+        physicalCardsFilter(),
+      ),
+    );
+
+  const set = await getSetById(setId);
+  if (!set) {
+    return null;
+  }
+
+  const ownedCount = ownedRow?.ownedCount ?? 0;
+  const ownedPrintCount = ownedRow?.ownedPrintCount ?? 0;
+  const officialCount = set.officialCount;
+  const completionPercent =
+    officialCount > 0
+      ? Math.min(100, (ownedCount / officialCount) * 100)
+      : 0;
+
+  return {
+    set: {
+      id: set.id,
+      name: set.name,
+      officialCount: set.officialCount,
+    },
+    ownedCount,
+    ownedPrintCount,
+    completionPercent: Math.round(completionPercent * 100) / 100,
+  };
+}
+
+export async function getSetCardsWithOwnership(
+  userId: string,
+  setId: string,
+  { page = 1, limit = 60 }: { page?: number; limit?: number } = {},
+) {
+  const safeLimit = Math.min(Math.max(limit, 1), 100);
+  const offset = (Math.max(page, 1) - 1) * safeLimit;
+
+  const whereClause = and(eq(cards.setId, setId), physicalCardsFilter());
+
+  const [rows, totalRow] = await Promise.all([
+    db
+      .select({
+        id: cards.id,
+        name: cards.name,
+        imageUrl: cards.imageUrl,
+        localId: cards.localId,
+        rarity: cards.rarity,
+        category: cards.category,
+        nameIsStandardLegal: cards.nameIsStandardLegal,
+        legalStandardPrint: cards.legalStandardPrint,
+        quantity: sql<number>`COALESCE(${collectionEntries.quantity}, 0)`.mapWith(
+          Number,
+        ),
+        owned: sql<boolean>`COALESCE(${collectionEntries.quantity}, 0) > 0`.mapWith(
+          Boolean,
+        ),
+      })
+      .from(cards)
+      .leftJoin(
+        collectionEntries,
+        and(
+          eq(collectionEntries.cardId, cards.id),
+          eq(collectionEntries.userId, userId),
+        ),
+      )
+      .where(whereClause)
+      .orderBy(asc(LOCAL_ID_NUMERIC_SQL), asc(cards.name))
+      .limit(safeLimit)
+      .offset(offset),
+    db.select({ value: count() }).from(cards).where(whereClause),
+  ]);
+
+  return {
+    data: rows,
+    pagination: {
+      page,
+      limit: safeLimit,
+      total: totalRow[0]?.value ?? 0,
+    },
+  };
+}
+
+export async function getMissingCardsInSet(
+  userId: string,
+  setId: string,
+  { page = 1, limit = 60 }: { page?: number; limit?: number } = {},
+) {
+  const safeLimit = Math.min(Math.max(limit, 1), 100);
+  const offset = (Math.max(page, 1) - 1) * safeLimit;
+
+  const notOwned = sql`NOT EXISTS (
+    SELECT 1
+    FROM ${collectionEntries}
+    WHERE ${collectionEntries.cardId} = ${cards.id}
+      AND ${collectionEntries.userId} = ${userId}
+      AND ${collectionEntries.quantity} > 0
+  )`;
+
+  const whereClause = and(
+    eq(cards.setId, setId),
+    physicalCardsFilter(),
+    notOwned,
+  );
+
+  const [rows, totalRow] = await Promise.all([
+    db
+      .select({
+        id: cards.id,
+        name: cards.name,
+        imageUrl: cards.imageUrl,
+        localId: cards.localId,
+        rarity: cards.rarity,
+        category: cards.category,
+        nameIsStandardLegal: cards.nameIsStandardLegal,
+        legalStandardPrint: cards.legalStandardPrint,
+      })
+      .from(cards)
+      .where(whereClause)
+      .orderBy(asc(LOCAL_ID_NUMERIC_SQL), asc(cards.name))
+      .limit(safeLimit)
+      .offset(offset),
+    db.select({ value: count() }).from(cards).where(whereClause),
+  ]);
+
+  return {
+    data: rows,
+    pagination: {
+      page,
+      limit: safeLimit,
+      total: totalRow[0]?.value ?? 0,
+    },
+  };
 }

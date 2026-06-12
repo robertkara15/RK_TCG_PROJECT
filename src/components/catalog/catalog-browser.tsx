@@ -197,7 +197,13 @@ export function CatalogBrowser({
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
+      <div
+        className={
+          showFilters
+            ? "grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]"
+            : "space-y-4"
+        }
+      >
         {showFilters ? (
           <aside className="lg:sticky lg:top-4 lg:self-start">
             <CatalogFilters
@@ -210,7 +216,7 @@ export function CatalogBrowser({
           </aside>
         ) : null}
 
-        <div className="space-y-4">
+        <div className={showFilters ? "min-w-0 space-y-4" : "space-y-4"}>
           <p className="text-sm text-zinc-500">
             {apiPath === "/api/collection" && stats ? (
               <>

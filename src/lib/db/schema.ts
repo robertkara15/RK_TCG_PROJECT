@@ -106,6 +106,24 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const pinnedSets = pgTable(
+  "pinned_sets",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    setId: text("set_id")
+      .notNull()
+      .references(() => sets.id, { onDelete: "cascade" }),
+    pinnedAt: timestamp("pinned_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    unique("pinned_sets_user_set").on(table.userId, table.setId),
+    index("idx_pinned_sets_user").on(table.userId),
+  ],
+);
+
 export const collectionEntries = pgTable(
   "collection_entries",
   {
@@ -252,6 +270,7 @@ export const albumEntries = pgTable(
 
 export const usersRelations = relations(users, ({ many }) => ({
   collectionEntries: many(collectionEntries),
+  pinnedSets: many(pinnedSets),
   decks: many(decks),
   albums: many(albums),
   folders: many(folders),
@@ -260,6 +279,18 @@ export const usersRelations = relations(users, ({ many }) => ({
 
 export const setsRelations = relations(sets, ({ many }) => ({
   cards: many(cards),
+  pinnedSets: many(pinnedSets),
+}));
+
+export const pinnedSetsRelations = relations(pinnedSets, ({ one }) => ({
+  user: one(users, {
+    fields: [pinnedSets.userId],
+    references: [users.id],
+  }),
+  set: one(sets, {
+    fields: [pinnedSets.setId],
+    references: [sets.id],
+  }),
 }));
 
 export const cardsRelations = relations(cards, ({ one, many }) => ({

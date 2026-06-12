@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function CollectionPage() {
   return (
-    <div className="space-y-6">
+    <>
       <div className="space-y-1">
         <h1 className="text-2xl font-semibold text-white">Collection</h1>
         <p className="text-sm text-zinc-400">
@@ -23,6 +23,6 @@ export default function CollectionPage() {
         emptyMessage="Your collection is empty. Open a card and add it from the detail page."
         namePlaceholder="Search your collection by card name…"
       />
-    </div>
+    </>
   );
 }
