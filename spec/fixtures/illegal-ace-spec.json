@@ -1,0 +1,32 @@
+{
+  "description": "Deck with 2 ACE SPEC cards. Should warn ACE_SPEC_LIMIT but still be saveable.",
+  "format": "standard",
+  "cards": [
+    { "cardName": "Charizard ex", "quantity": 3 },
+    { "cardName": "Pidgeot ex", "quantity": 2 },
+    { "cardName": "Bibarel", "quantity": 2 },
+    { "cardName": "Manaphy", "quantity": 1 },
+    { "cardName": "Professor's Research", "quantity": 4 },
+    { "cardName": "Iono", "quantity": 3 },
+    { "cardName": "Boss's Orders", "quantity": 2 },
+    { "cardName": "Ultra Ball", "quantity": 4 },
+    { "cardName": "Nest Ball", "quantity": 4 },
+    { "cardName": "Prime Catcher", "quantity": 1 },
+    { "cardName": "Hero's Cape", "quantity": 1 },
+    { "cardName": "Basic Fire Energy", "quantity": 12 },
+    { "cardName": "Basic Lightning Energy", "quantity": 4 },
+    { "cardName": "Basic Colorless Energy", "quantity": 4 }
+  ],
+  "expected": {
+    "totalCards": 60,
+    "isValid": false,
+    "warnings": [
+      {
+        "ruleId": "ACE_SPEC_LIMIT",
+        "severity": "warning",
+        "messageContains": "ACE SPEC"
+      }
+    ]
+  },
+  "notes": "Prime Catcher and Hero's Cape are ACE SPEC cards in SV Standard. Both at qty 1 = 2 ACE SPEC total → warning."
+}

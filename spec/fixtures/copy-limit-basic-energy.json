@@ -1,0 +1,26 @@
+{
+  "description": "Basic Energy ignores 4-copy limit. Non-energy cards do not.",
+  "format": "standard",
+  "cards": [
+    { "cardName": "Basic Fire Energy", "quantity": 20 },
+    { "cardName": "Ultra Ball", "quantity": 5 },
+    { "cardName": "Charizard ex", "quantity": 2 }
+  ],
+  "expected": {
+    "totalCards": 27,
+    "isValid": false,
+    "warnings": [
+      {
+        "ruleId": "COPY_LIMIT",
+        "cardNames": ["Ultra Ball"],
+        "messageContains": "Ultra Ball"
+      },
+      {
+        "ruleId": "DECK_SIZE",
+        "messageContains": "27/60"
+      }
+    ],
+    "shouldNotWarn": ["Basic Fire Energy"]
+  },
+  "notes": "20 Basic Fire Energy is legal from a copy-limit perspective. Ultra Ball at 5 triggers COPY_LIMIT."
+}

@@ -1,0 +1,31 @@
+{
+  "description": "60-card Standard-legal deck. Should produce zero validation warnings when catalog names resolve.",
+  "format": "standard",
+  "cards": [
+    { "cardName": "Charizard ex", "quantity": 2 },
+    { "cardName": "Pidgeot ex", "quantity": 2 },
+    { "cardName": "Bibarel", "quantity": 2 },
+    { "cardName": "Manaphy", "quantity": 1 },
+    { "cardName": "Professor's Research", "quantity": 4 },
+    { "cardName": "Iono", "quantity": 2 },
+    { "cardName": "Boss's Orders", "quantity": 2 },
+    { "cardName": "Arven", "quantity": 2 },
+    { "cardName": "Ultra Ball", "quantity": 4 },
+    { "cardName": "Nest Ball", "quantity": 4 },
+    { "cardName": "Rare Candy", "quantity": 2 },
+    { "cardName": "Super Rod", "quantity": 1 },
+    { "cardName": "Counter Catcher", "quantity": 2 },
+    { "cardName": "Superior Energy Retrieval", "quantity": 1 },
+    { "cardName": "Technical Machine: Evolution", "quantity": 1 },
+    { "cardName": "Artazon", "quantity": 1 },
+    { "cardName": "Basic Fire Energy", "quantity": 12 },
+    { "cardName": "Basic Lightning Energy", "quantity": 2 },
+    { "cardName": "Basic Colorless Energy", "quantity": 6 }
+  ],
+  "expected": {
+    "totalCards": 60,
+    "isValid": true,
+    "warnings": []
+  },
+  "notes": "Replace card names with exact catalog names during test setup. Quantities sum to 60."
+}

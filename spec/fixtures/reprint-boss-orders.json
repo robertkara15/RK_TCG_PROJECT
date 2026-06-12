@@ -1,0 +1,35 @@
+{
+  "description": "Boss's Orders via old print name should be Standard-legal under tournament reprint rule.",
+  "format": "standard",
+  "catalogContext": {
+    "cardName": "Boss's Orders",
+    "prints": [
+      {
+        "id": "swsh2-154",
+        "regulationMark": "D",
+        "legalStandardPrint": false,
+        "nameIsStandardLegal": true
+      },
+      {
+        "id": "me-123",
+        "regulationMark": "I",
+        "legalStandardPrint": true,
+        "nameIsStandardLegal": true
+      }
+    ]
+  },
+  "deck": {
+    "cards": [
+      { "cardName": "Boss's Orders", "quantity": 2 }
+    ]
+  },
+  "expected": {
+    "warnings": [],
+    "standardLegalCheck": {
+      "cardName": "Boss's Orders",
+      "nameIsStandardLegal": true,
+      "shouldNotWarn": "STANDARD_LEGAL"
+    }
+  },
+  "notes": "Print D is illegal on its own, but name is legal because an I-mark reprint exists. Deck tracks name only — no STANDARD_LEGAL warning."
+}
