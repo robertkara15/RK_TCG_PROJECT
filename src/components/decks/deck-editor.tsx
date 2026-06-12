@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { CardImage } from "@/components/card-image";
+import { DeckImportModal } from "@/components/decks/deck-import-modal";
 import { DeckStatsPanel } from "@/components/decks/deck-stats-panel";
 import type { DeckStats, ValidationWarning } from "@/lib/decks/types";
 
@@ -53,6 +54,11 @@ export function DeckEditor({ deckId }: { deckId: string }) {
   const [searchResults, setSearchResults] = useState<SearchCard[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importSummary, setImportSummary] = useState<{
+    imported: number;
+    unresolved: string[];
+  } | null>(null);
 
   const loadDeck = useCallback(async () => {
     const response = await fetch(`/api/decks/${deckId}`);
@@ -188,13 +194,22 @@ export function DeckEditor({ deckId }: { deckId: string }) {
         <Link href="/decks" className="text-sm text-zinc-400 hover:text-white">
           ← Decks
         </Link>
-        <button
-          type="button"
-          onClick={() => void deleteDeck()}
-          className="text-sm text-red-400 hover:text-red-300"
-        >
-          Delete deck
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setShowImportModal(true)}
+            className="rounded-lg border border-zinc-700 px-3 py-1.5 text-sm text-zinc-200 hover:bg-zinc-900"
+          >
+            Import
+          </button>
+          <button
+            type="button"
+            onClick={() => void deleteDeck()}
+            className="text-sm text-red-400 hover:text-red-300"
+          >
+            Delete deck
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
@@ -278,9 +293,35 @@ export function DeckEditor({ deckId }: { deckId: string }) {
         {isSaving ? <p className="text-sm text-zinc-500">Saving…</p> : null}
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_280px]">
-        <div className="relative z-20 min-w-0 space-y-4">
-          <div className="relative z-50">
+      <DeckStatsPanel stats={deck.stats} warnings={deck.validation.warnings} />
+
+      {importSummary ? (
+        <div className="rounded-xl border border-zinc-700 bg-zinc-900/60 px-4 py-3 text-sm">
+          <p className="text-zinc-200">
+            Imported {importSummary.imported} cards
+            {importSummary.unresolved.length > 0
+              ? ` · ${importSummary.unresolved.length} lines could not be matched`
+              : "."}
+          </p>
+          {importSummary.unresolved.length > 0 ? (
+            <ul className="mt-2 space-y-1 text-amber-200/90">
+              {importSummary.unresolved.map((line) => (
+                <li key={line}>• {line}</li>
+              ))}
+            </ul>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => setImportSummary(null)}
+            className="mt-2 text-xs text-zinc-400 hover:text-zinc-200"
+          >
+            Dismiss
+          </button>
+        </div>
+      ) : null}
+
+      <div className="relative z-20 min-w-0 space-y-4">
+        <div className="relative z-50">
             <input
               type="search"
               value={searchQuery}
@@ -395,12 +436,27 @@ export function DeckEditor({ deckId }: { deckId: string }) {
               ))}
             </div>
           )}
-        </div>
-
-        <div className="relative z-0 xl:order-2">
-          <DeckStatsPanel stats={deck.stats} warnings={deck.validation.warnings} />
-        </div>
       </div>
+
+      {showImportModal ? (
+        <DeckImportModal
+          deckId={deckId}
+          deckName={deck.deck.name}
+          hasCards={deck.cards.length > 0}
+          onClose={() => setShowImportModal(false)}
+          onImported={(result) => {
+            setImportSummary({
+              imported: result.imported,
+              unresolved: result.unresolved,
+            });
+            if (result.deck) {
+              setDeck(result.deck as DeckDetail);
+            } else {
+              void loadDeck();
+            }
+          }}
+        />
+      ) : null}
     </div>
   );
 }

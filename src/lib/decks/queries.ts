@@ -2,6 +2,8 @@ import { and, asc, eq, inArray, or, sql } from "drizzle-orm";
 
 import { normalizeCardName } from "@/lib/catalog/normalize";
 import { POCKET_SET_IDS } from "@/lib/catalog/pocket";
+import { parsePtcglDeckText } from "@/lib/decks/ptcgl-parser";
+import { resolvePtcglImportLines } from "@/lib/decks/resolve-ptcgl-import";
 import {
   buildCatalogMap,
   pickRepresentativeCard,
@@ -401,7 +403,11 @@ export async function deleteDeck(deckId: string, userId: string) {
 export async function replaceDeckCards(
   deckId: string,
   userId: string,
-  cardsInput: { cardName: string; quantity: number }[],
+  cardsInput: {
+    cardName: string;
+    quantity: number;
+    representativeCardId?: string | null;
+  }[],
 ) {
   const owned = await assertDeckOwner(deckId, userId);
   if (!owned) {
@@ -411,13 +417,22 @@ export async function replaceDeckCards(
   await db.delete(deckCards).where(eq(deckCards.deckId, deckId));
 
   if (cardsInput.length > 0) {
-    const merged = new Map<string, { cardName: string; quantity: number }>();
+    const merged = new Map<
+      string,
+      {
+        cardName: string;
+        quantity: number;
+        representativeCardId: string | null;
+      }
+    >();
     for (const card of cardsInput) {
       const normalizedName = normalizeCardName(card.cardName);
       const existing = merged.get(normalizedName);
       merged.set(normalizedName, {
         cardName: card.cardName.trim(),
         quantity: (existing?.quantity ?? 0) + card.quantity,
+        representativeCardId:
+          existing?.representativeCardId ?? card.representativeCardId ?? null,
       });
     }
 
@@ -427,6 +442,7 @@ export async function replaceDeckCards(
         cardName: card.cardName,
         normalizedName,
         quantity: card.quantity,
+        representativeCardId: card.representativeCardId,
       })),
     );
   }
@@ -437,6 +453,53 @@ export async function replaceDeckCards(
     .where(eq(decks.id, deckId));
 
   return getDeckDetail(deckId, userId);
+}
+
+export async function importPtcglDeck(
+  deckId: string,
+  userId: string,
+  text: string,
+) {
+  const owned = await assertDeckOwner(deckId, userId);
+  if (!owned) {
+    return null;
+  }
+
+  const parsed = parsePtcglDeckText(text);
+  if (parsed.length === 0) {
+    return {
+      imported: 0,
+      unresolved: [] as string[],
+      deck: await getDeckDetail(deckId, userId),
+    };
+  }
+
+  const { resolved, unresolved } = await resolvePtcglImportLines(parsed);
+
+  const deck = await replaceDeckCards(
+    deckId,
+    userId,
+    resolved.map((entry) => ({
+      cardName: entry.cardName,
+      quantity: entry.quantity,
+      representativeCardId: entry.representativeCardId,
+    })),
+  );
+
+  if (!deck) {
+    return null;
+  }
+
+  const importedCards = resolved.reduce(
+    (total, entry) => total + entry.quantity,
+    0,
+  );
+
+  return {
+    imported: importedCards,
+    unresolved,
+    deck,
+  };
 }
 
 export async function addDeckCard(

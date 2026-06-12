@@ -15,7 +15,7 @@ export function DeckStatsPanel({
         : "text-amber-300";
 
   return (
-    <aside className="z-0 space-y-5 rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 xl:sticky xl:top-4 xl:self-start">
+    <aside className="space-y-5 rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
       <div className="space-y-1">
         <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-500">
           Stats
