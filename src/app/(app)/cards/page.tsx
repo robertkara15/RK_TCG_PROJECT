@@ -1,16 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { CardBrowse } from "@/components/card-browse";
-import { listSets } from "@/lib/catalog/queries";
+import { CatalogBrowser } from "@/components/catalog/catalog-browser";
 
 export const metadata: Metadata = {
   title: "Cards — RK TCG",
 };
 
-export default async function CardsPage() {
-  const sets = await listSets();
-
+export default function CardsPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -28,11 +25,10 @@ export default async function CardsPage() {
         </Link>
       </div>
 
-      <CardBrowse
-        sets={sets.map((set) => ({
-          id: set.id,
-          name: set.name,
-        }))}
+      <CatalogBrowser
+        apiPath="/api/cards"
+        defaultSort="name_asc"
+        emptyMessage="No cards found. Try syncing the catalog in Settings or adjusting your filters."
       />
     </div>
   );

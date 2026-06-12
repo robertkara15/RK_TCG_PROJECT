@@ -3,8 +3,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { CardImage } from "@/components/card-image";
+import { CollectionQuantity } from "@/components/collection-quantity";
 import { LegalityBadge } from "@/components/legality-badge";
-import { getCardById, getOtherPrints } from "@/lib/catalog/queries";
+import {
+  getCardById,
+  getCollectionQuantity,
+  getOtherPrints,
+} from "@/lib/catalog/queries";
+import { auth } from "@/auth";
 import type { cards } from "@/lib/db/schema";
 
 type PageProps = {
@@ -29,7 +35,14 @@ export default async function CardDetailPage({ params }: PageProps) {
   }
 
   const { card, set } = row;
-  const otherPrints = await getOtherPrints(card.id, card.normalizedName);
+  const [otherPrints, session] = await Promise.all([
+    getOtherPrints(card.id, card.normalizedName),
+    auth(),
+  ]);
+  const collectionQuantity =
+    session?.user?.id != null
+      ? await getCollectionQuantity(session.user.id, card.id)
+      : 0;
 
   return (
     <div className="space-y-8">
@@ -70,6 +83,10 @@ export default async function CardDetailPage({ params }: PageProps) {
                 ACE SPEC — max 1 per deck
               </p>
             ) : null}
+            <CollectionQuantity
+              cardId={card.id}
+              initialQuantity={collectionQuantity}
+            />
           </div>
 
           <section className="space-y-2">

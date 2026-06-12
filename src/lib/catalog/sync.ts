@@ -1,5 +1,6 @@
 import { count, eq, notInArray, sql } from "drizzle-orm";
 
+import { enrichSetFromTcgdex, enrichSetsMissingMetadata } from "@/lib/catalog/enrich-set";
 import { buildTcgdexImageUrl } from "@/lib/catalog/images";
 import { mapBriefCard, mapDetailCard } from "@/lib/catalog/map-card";
 import { isPocketCard, isPocketSet, POCKET_SET_IDS } from "@/lib/catalog/pocket";
@@ -11,7 +12,6 @@ import {
   fetchAllSets,
   fetchCardBriefsPage,
   fetchCardDetail,
-  fetchSetDetail,
 } from "@/lib/tcgdex/client";
 
 const DEFAULT_BATCH_SIZE = 50;
@@ -34,13 +34,15 @@ async function resolveSetSerieId(
     return cache.get(setId) ?? null;
   }
 
-  const setDetail = await fetchSetDetail(setId);
+  const setDetail = await enrichSetFromTcgdex(setId);
   const serieId = setDetail?.serie?.id ?? null;
   cache.set(setId, serieId);
   return serieId;
 }
 
 async function recomputeDerivedFields() {
+  await enrichSetsMissingMetadata();
+
   const config = await getFormatConfig();
   const legalMarks = config.legalMarks ?? ["H", "I", "J"];
   const legalMarkSql = sql.join(legalMarks.map((mark) => sql`${mark}`), sql`, `);
@@ -218,6 +220,8 @@ export async function runCatalogSync({
             },
           });
       }
+
+      await enrichSetsMissingMetadata();
 
       return {
         phase,
